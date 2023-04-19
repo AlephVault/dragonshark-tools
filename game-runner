@@ -50,7 +50,7 @@ def service():
                 directory = obj["directory"]
                 command = obj["command"]
                 domain = obj["domain"]
-                game_id = obj["game-id"]
+                app = obj["app"]
             except:
                 LOGGER.error("Invalid JSON line: " + line)
                 continue
@@ -63,7 +63,7 @@ def service():
 
             # Otherwise, lock and execute.
             lock_set(line)
-            run_game(directory, command, domain, game_id)
+            run_game(directory, command, domain, app)
 
 
 def run():
