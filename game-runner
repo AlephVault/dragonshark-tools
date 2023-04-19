@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# PLEASE NOTE: THIS FILE WILL EXIST ON /bin, root-OWNED, AND 0o400.
 import json
 import logging
 from dsrun.process import run_game, clear_processes

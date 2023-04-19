@@ -1,0 +1,9 @@
+[Unit]
+Description=Run a Dragonshark game
+
+[Service]
+User=root
+ExecStart=/bin/game-runner
+
+[Install]
+WantedBy=multi-user.target
