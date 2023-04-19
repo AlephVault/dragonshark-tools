@@ -12,7 +12,7 @@ from typing import Callable
 # permissions, and owned by pi:pi (recursively). Additionally, the
 # "dragonshark" subdirectory will keep saves for all of the games
 # (/media/pi/SAVES/{domain}/{game} for each game).
-SAVES_LOCATION = "/mnt/SAVES/dragonshark"
+SAVES_LOCATION = "/media/pi/SAVES/dragonshark"
 
 # These are the arguments for the chromium process. Ideally, they
 # will do the following:
