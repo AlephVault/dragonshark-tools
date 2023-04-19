@@ -1,14 +1,9 @@
 import json
 import os
-import logging
 import threading
 import subprocess
 from .users import PI_NAME
 from typing import Callable
-
-
-logging.basicConfig()
-LOGGER = logging.getLogger("game-runner")
 
 
 # This is the partition where all the Dragonshark saves exist.
@@ -56,21 +51,11 @@ def run_game(directory: str, command: str, domain: str, game_id: str, on_end: Ca
       cleaned up.
     """
 
-    # 1. Assemble the command and get its real relative path. This implies
-    #    validating and knowing the internal real command.
-    full_command = os.path.join(directory, command)
-    prefix = directory.rstrip("/") + "/"
-    if not full_command.startswith(prefix):
-        LOGGER.error(f"The command '{command}' is not inside the directory '{directory}'")
-        on_end()
-        return
-    real_command = full_command[len(prefix):]
-
-    # 2. Get the directory of the path, and mount a server right there.
+    # 1. Prepare the URL and mount a server right there.
     subprocess.run("python -m http.server 8888", cwd=directory)
-    url = f"http://localhost:8888/{real_command}"
+    url = f"http://localhost:8888/{command}"
 
-    # 3. Run the browser command, preparing the saves and everything.
+    # 2. Run the browser command, preparing the saves and everything.
     #    This includes preparing the preferences file.
     data_dir = os.path.join(SAVES_LOCATION, domain, game_id)
     prefs_file = os.path.join(data_dir, "preferences.json")
@@ -82,7 +67,7 @@ def run_game(directory: str, command: str, domain: str, game_id: str, on_end: Ca
     chromium_command = sudo + ["chromium-browser"] + custom + CHROMIUM_BROWSER_ARGS + [url]
     process = subprocess.Popen(chromium_command)
 
-    # 4. Wait for the process and, when done, invoke the callback.
+    # 3. Wait for the process and, when done, invoke the callback.
     def _func():
         process.wait()
         on_end()
