@@ -2,6 +2,8 @@ import os
 import subprocess
 import threading
 from typing import Callable
+
+from .joypad import kill_on_hotkey
 from .users import PI_NAME, GAMER_NAME
 
 # This is the partition where all the Dragonshark saves exist.
@@ -48,9 +50,13 @@ def run_game(directory: str, command: str, domain: str, app: str, on_end: Callab
     # 3. Run the game.
     process = subprocess.Popen(["sudo", "-u", GAMER_NAME, os.path.join(directory, command)])
 
-    # When the game process ends:
+    # Wait until the game process ends:
+    # Also install a signal to kill it on hotkey Start + Select (hold both 3 seconds).
+    kill_on_hotkey(process)
+
     def _func():
         process.wait()
+        # On end, do this:
         # 4. Copy the contents from the current save partition to the saves
         #    partition (chown to pi:pi, with 0o400).
         os.system(f"rm -r {game_dir}/*")

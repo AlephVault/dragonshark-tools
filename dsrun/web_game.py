@@ -2,6 +2,8 @@ import json
 import os
 import threading
 import subprocess
+
+from .joypad import kill_on_hotkey
 from .users import PI_NAME
 from typing import Callable
 
@@ -68,6 +70,9 @@ def run_game(directory: str, command: str, domain: str, app: str, on_end: Callab
     process = subprocess.Popen(chromium_command)
 
     # 3. Wait for the process and, when done, invoke the callback.
+    #    Also install a signal to kill it on hotkey Start + Select (hold both 3 seconds).
+    kill_on_hotkey(process)
+
     def _func():
         process.wait()
         on_end()
