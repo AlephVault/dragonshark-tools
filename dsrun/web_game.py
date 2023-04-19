@@ -62,6 +62,7 @@ def run_game(directory: str, command: str, domain: str, game_id: str, on_end: Ca
     prefix = directory.rstrip("/") + "/"
     if not full_command.startswith(prefix):
         LOGGER.error(f"The command '{command}' is not inside the directory '{directory}'")
+        on_end()
         return
     real_command = full_command[len(prefix):]
 
