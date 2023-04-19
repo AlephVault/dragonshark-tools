@@ -8,11 +8,11 @@ from typing import Callable
 
 # This is the partition where all the Dragonshark saves exist.
 # This partition is ext4 and everything there will be owned by pi.
-# Actually, the partition is /media/pi/SAVES, with the "rwxr-xr-x"
+# Actually, the partition is /mnt/SAVES, with the usual "rwxr-xr-x"
 # permissions, and owned by pi:pi (recursively). Additionally, the
 # "dragonshark" subdirectory will keep saves for all of the games
-# (/media/pi/SAVES/{domain}/{game} for each game).
-SAVES_LOCATION = "/media/pi/SAVES/dragonshark"
+# (/mnt/SAVES/{domain}/{game} for each game).
+SAVES_LOCATION = "/mnt/SAVES/dragonshark"
 
 # These are the arguments for the chromium process. Ideally, they
 # will do the following:
