@@ -22,14 +22,14 @@ SAVES_LOCATION = "/mnt/SAVES/dragonshark"
 CURRENT_SAVE_LOCATION = "/mnt/CURRENT_SAVE"
 
 
-def run_game(directory: str, command: str, domain: str, game_id: str, on_end: Callable[[], None]):
+def run_game(directory: str, command: str, domain: str, app: str, on_end: Callable[[], None]):
     """
     Executes a native game.
     :param directory: Where is the game stored.
     :param command: The command, inside the game.
     :param domain: The domain of the game. This is INVERTED, typically in the
       same format for Java or React. Something like "com.mycompany".
-    :param game_id: The name of the game. It might be something like this:
+    :param app: The name of the game. It might be something like this:
       "MyAwesomeGame" or "MyAwesomeGame.Main" (perhaps the game has multiple
       possible interfaces).
     :param on_end: What happens when the game is completely terminated and
@@ -42,7 +42,7 @@ def run_game(directory: str, command: str, domain: str, game_id: str, on_end: Ca
     # 2. Copy the contents from the saves partition (for the game, only)
     #    to the current save partition. Make the game save directory if
     #    it does not exist beforehand.
-    game_dir = os.path.join(SAVES_LOCATION, domain, game_id)
+    game_dir = os.path.join(SAVES_LOCATION, domain, app)
     os.system(f"sudo -u {PI_NAME} mkdir -p {game_dir}")
     os.system(f"cp {game_dir}/* {CURRENT_SAVE_LOCATION}")
     # 3. Run the game.

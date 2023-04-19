@@ -60,14 +60,14 @@ def validate_command(directory: str, command: str, on_end: Callable[[], None]):
     return full_command[len(prefix):]
 
 
-def run_game(directory: str, command: str, domain: str, game_id: str):
+def run_game(directory: str, command: str, domain: str, app: str):
     """
     Executes a game. For non-web games, a save-file mechanism will be attempted.
     :param directory: Where is the game stored.
     :param command: The command, inside the game.
     :param domain: The domain of the game. This is INVERTED, typically in the
       same format for Java or React. Something like "com.mycompany".
-    :param game_id: The name of the game. It might be something like this:
+    :param app: The name of the game. It might be something like this:
       "MyAwesomeGame" or "MyAwesomeGame.Main" (perhaps the game has multiple
       possible interfaces).
     """
@@ -87,4 +87,4 @@ def run_game(directory: str, command: str, domain: str, game_id: str):
     # 3. Run the command.
     real_command = validate_command(directory, command, callback)
     if real_command:
-        runner(directory, real_command, domain, game_id, callback)
+        runner(directory, real_command, domain, app, callback)

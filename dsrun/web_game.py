@@ -37,14 +37,14 @@ CHROMIUM_BROWSER_ARGS = ["--disk-cache-size=0", "--enable-features=FileSystemAPI
                          "--simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT'"]
 
 
-def run_game(directory: str, command: str, domain: str, game_id: str, on_end: Callable[[], None]):
+def run_game(directory: str, command: str, domain: str, app: str, on_end: Callable[[], None]):
     """
     Executes a web game.
     :param directory: Where is the game stored.
     :param command: The command, inside the game.
     :param domain: The domain of the game. This is INVERTED, typically in the
       same format for Java or React. Something like "com.mycompany".
-    :param game_id: The name of the game. It might be something like this:
+    :param app: The name of the game. It might be something like this:
       "MyAwesomeGame" or "MyAwesomeGame.Main" (perhaps the game has multiple
       possible interfaces).
     :param on_end: What happens when the game is completely terminated and
@@ -57,7 +57,7 @@ def run_game(directory: str, command: str, domain: str, game_id: str, on_end: Ca
 
     # 2. Run the browser command, preparing the saves and everything.
     #    This includes preparing the preferences file.
-    data_dir = os.path.join(SAVES_LOCATION, domain, game_id)
+    data_dir = os.path.join(SAVES_LOCATION, domain, app)
     prefs_file = os.path.join(data_dir, "preferences.json")
     os.makedirs(data_dir, mode=0o700, exist_ok=True)
     with open(prefs_file, "w") as f:
