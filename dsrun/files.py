@@ -36,6 +36,8 @@ def setup_state_files():
 
     # Clears the state files.
     clear_state_files()
+    # Creates the files directory.
+    os.system("mkdir -p /run/game")
     # [re-]Creates the pipe file.
     os.mkfifo(PIPE_FILE)
     # The given user will only have, by default, write-only permission.
