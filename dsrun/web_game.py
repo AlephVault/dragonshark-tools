@@ -2,8 +2,7 @@ import json
 import os
 import threading
 import subprocess
-
-from .joypad import kill_on_hotkey
+from .joypad import kill_on_hotkeyjoypad
 from .users import PI_NAME
 from typing import Callable
 
