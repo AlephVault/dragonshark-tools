@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # PLEASE NOTE: THIS FILE WILL EXIST ON /bin, root-OWNED, AND 0o400.
 import json
+import pygame
 import logging
 from dsrun.process import run_game, clear_processes
 from dsrun.files import setup_state_files, lock_get, lock_set, command_reader
@@ -67,6 +68,7 @@ def service():
 
 
 def run():
+    pygame.init()
     setup()
     try:
         service()
