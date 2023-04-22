@@ -2,9 +2,9 @@ import os
 import subprocess
 import threading
 from typing import Callable
-
 from .joypad import kill_on_hotkey
 from .users import PI_NAME, GAMER_NAME
+
 
 # This is the partition where all the Dragonshark saves exist.
 # This partition is ext4 and everything there will be owned by pi.
