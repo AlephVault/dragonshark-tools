@@ -14,6 +14,8 @@ GAMEPAD_REFRESH = 10 * 2
 TRUE_START = 9
 TRUE_SELECT = 8
 DEFAULT_HOTKEY = (TRUE_START, TRUE_SELECT)
+# The setting for the exit hotkey.
+EXIT_HOTKEY_SETTING = "exit-hotkey"
 
 
 def is_hotkey_pressed(gamepad, hotkey=(8, 9)):
@@ -35,7 +37,7 @@ def main_gamepad_and_hotkey():
     if joystick:
         joystick.init()
     settings = settings_get()
-    exit_hotkey = settings.get("exit-hotkey")
+    exit_hotkey = settings.get(EXIT_HOTKEY_SETTING)
     if not exit_hotkey or not isinstance(exit_hotkey, (list, tuple)):
         exit_hotkey = DEFAULT_HOTKEY
     return joystick, exit_hotkey

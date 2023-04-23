@@ -3,9 +3,9 @@
 import json
 import pygame
 import logging
+from dsrun.joypad import EXIT_HOTKEY_SETTING
 from dsrun.process import run_game, clear_processes
-from dsrun.files import setup_state_files, lock_get, lock_set, command_reader
-
+from dsrun.files import setup_state_files, lock_get, lock_set, command_reader, settings_get, settings_set
 
 logging.basicConfig()
 LOGGER = logging.getLogger("game-runner")
@@ -37,6 +37,51 @@ def teardown():
     clear_processes()
 
 
+def launch_game(obj: dict, line: str):
+    """
+    Launches a game.
+    :param obj: The instruction (having type=launch).
+    :param line: The same, but as text.
+    """
+
+    try:
+        directory = obj["directory"]
+        command = obj["command"]
+        domain = obj["domain"]
+        app = obj["app"]
+    except:
+        LOGGER.error("Invalid JSON line: " + line)
+        return
+
+    # Ignore, if there is lock.
+    lock_exists, lock_line = lock_get()
+    if lock_exists:
+        LOGGER.error("A game is already running: " + lock_line)
+        return
+
+    # Otherwise, lock and execute.
+    lock_set(line)
+    run_game(directory, command, domain, app)
+
+
+def update_exit_hotkey(obj: dict, line: str):
+    """
+    Updates the exit hotkey for the games.
+    :param obj: The instruction (having type=update:exit-hotkey).
+    :param line: The same, but as text.
+    """
+
+    try:
+        hotkey = obj["hotkey"]
+    except:
+        LOGGER.error("Invalid JSON line: " + line)
+        return
+
+    settings = settings_get()
+    settings[EXIT_HOTKEY_SETTING] = hotkey
+    settings_set(settings)
+
+
 def service():
     """
     The whole service loop.
@@ -48,23 +93,17 @@ def service():
             try:
                 line = f.readline()
                 obj = json.loads(line)
-                directory = obj["directory"]
-                command = obj["command"]
-                domain = obj["domain"]
-                app = obj["app"]
+                type_ = obj["type"]
+                if type_ not in ["launch", "update:exit-hotkey"]:
+                    raise ValueError(type_)
             except:
                 LOGGER.error("Invalid JSON line: " + line)
                 continue
 
-            # Ignore, if there is lock.
-            lock_exists, lock_line = lock_get()
-            if lock_exists:
-                LOGGER.error("A game is already running: " + lock_line)
-                continue
-
-            # Otherwise, lock and execute.
-            lock_set(line)
-            run_game(directory, command, domain, app)
+            if type_ == "launch":
+                launch_game(obj, line)
+            elif type_ == "update:exit-hotkey":
+                update_exit_hotkey(obj, line)
 
 
 def run():
