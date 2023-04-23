@@ -1,7 +1,8 @@
 import threading
 import time
-import evdev
+import pygame
 import subprocess
+from .files import settings_get
 
 
 # The sleep time for each iteration is a half second.
@@ -9,6 +10,35 @@ SLEEP_TIME = 0.5
 # These are expressed in half-seconds.
 HOTKEY_TIME = 3 * 2
 GAMEPAD_REFRESH = 10 * 2
+# The true default constants.
+TRUE_START = 9
+TRUE_SELECT = 8
+DEFAULT_HOTKEY = (TRUE_START, TRUE_SELECT)
+
+
+def is_hotkey_pressed(gamepad, hotkey=(8, 9)):
+    """
+    Tells whether the hotkey is pressed. By default, the hotkey
+    is START + SELECT.
+    """
+
+    pygame.event.pump()
+    return all([gamepad.get_button(key) for key in hotkey])
+
+
+def main_gamepad_and_hotkey():
+    """
+    Gets the first gamepad, and also the current hotkey.
+    """
+
+    joystick = pygame.joystick.Joystick(0)
+    if joystick:
+        joystick.init()
+    settings = settings_get()
+    exit_hotkey = settings.get("exit-hotkey")
+    if not exit_hotkey or not isinstance(exit_hotkey, (list, tuple)):
+        exit_hotkey = DEFAULT_HOTKEY
+    return joystick, exit_hotkey
 
 
 def kill_on_hotkey(process: subprocess.Popen):
@@ -21,33 +51,22 @@ def kill_on_hotkey(process: subprocess.Popen):
 
     def _func():
         refresh_ctr = 0
-        main_gamepad = None
+        gamepad = None
+        hotkey = (8, 9)
         hotkey_ctr = 0
         while process.poll() is None:
             if refresh_ctr == GAMEPAD_REFRESH:
                 refresh_ctr = 0
             if refresh_ctr == 0:
-                # Determine which one is the [new] main gamepad.
-                main_gamepad = None
-                for device in evdev.list_devices():
-                    try:
-                        main_gamepad = evdev.InputDevice(device)
-                        break
-                    except Exception:
-                        pass
+                gamepad, hotkey = main_gamepad_and_hotkey()
             refresh_ctr += 1
 
             # Now, work with the main gamepad only. If Start + Select
             # are pressed for 3 seconds or more, then kill the game.
-            if main_gamepad is not None:
-                hotkey = True
-                event = main_gamepad.read_one()
-                # TODO continue tomorrow. The event must be present (not
-                # TODO that much in the past) and must have Select and
-                # TODO Start both pressed. Otherwise, hotkey becomes False.
-                if hotkey:
+            if gamepad is not None:
+                if is_hotkey_pressed(gamepad, hotkey):
                     hotkey_ctr += 1
-                    if hotkey == HOTKEY_TIME:
+                    if hotkey_ctr == HOTKEY_TIME:
                         process.kill()
                         return
                 else:
