@@ -68,7 +68,7 @@ def store_dragonshark_save(package_base: str, app: str):
         # Then, remove any previous target directory and move SAVES_DISK/~tmp
         # to this target directory.
         f"mkdir -p {target}",
-        f"rm -r {target}",
+        f"rm -rf {target}",
         f"mv {SAVES_DISK}/~tmp {target}",
         # Finally, make a chown to pi:pi of all the new  files (since they'll
         # be root:root now) and a chmod to 0700.
@@ -91,7 +91,7 @@ def load_dragonshark_save(package_base: str, app: str):
     source = get_dragonshark_game_save_path(package_base, app)
     target = CURRENT_SAVE_LOCATION
     # First, clear the target directory.
-    os.system(f"rm -r {target}/*")
+    os.system(f"rm -rf {target}/*")
     instructions = [
         # Remember that these all instructions will be executed by root,
         # actually (the service itself, which runs root, will be calling
