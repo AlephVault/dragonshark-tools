@@ -1,0 +1,151 @@
+import re
+import os
+import json
+import subprocess
+import socketserver
+from .saves import load_dragonshark_save, store_dragonshark_save
+from . import run_web, run_native
+
+
+MAIN_BINDING = "/run/Hawa/game-launcher.sock"
+
+
+class GameLauncherServer(socketserver.ThreadingUnixStreamServer):
+    """
+    This is a very small server that attends a command request
+    to launch a game.
+    """
+
+    def __init__(self, server_address, request_handler_class):
+        super().__init__(server_address, request_handler_class)
+        self.locked = False
+
+
+class GameLauncherRequestHandler(socketserver.StreamRequestHandler):
+    """
+    This handler receives only one command from the user and,
+    after parsing it, launches a game (if possible).
+    """
+
+    def _recv_command(self):
+        """
+        Parses a command up to its line. Only ONE command will
+        be parsed like this (other lines will be discarded).
+        The line will be JSON, with specific fields: "package",
+        "app", "directory", "command".
+        :return: A (package, app, directory, command) tuple.
+        """
+
+        # Read the JSON payload from the socket.
+        payload = b""
+        while True:
+            data = self.request.recv(1024)
+            if not data:
+                break
+            payload += data
+            if b"\n" in payload:
+                payload = payload[:payload.index(b"\n")]
+                break
+
+        # Extract the fields and return them.
+        obj = json.loads(payload.strip().decode("utf-8"))
+        return obj["package"], obj["app"], obj["directory"], obj["command"]
+
+    def _get_executable_type(self, command_path: str):
+        """
+        Tells whether the executable is an HTML page (returns "web") or another type.
+        This "another type" might be an ELF 32-bit or ELF 64-bit, or a shell script,
+        but in any case the command type will be the same for them (returns "exe").
+        :returns: The type: "web" or "exe".
+        """
+
+        output = subprocess.check_output(["file", command_path]).decode('utf-8')
+        if re.search(r"HTML document", output):
+            return "web"
+        else:
+            return "exe"
+
+    def handle(self):
+        """
+        Parses and runs the entire command.
+        """
+
+        # Parse the payload and validate values are present.
+        try:
+            package, app, directory, command = self._recv_command()
+            package, app, directory, command = package.strip(), app.strip(), directory.strip(), command.strip()
+            if not all([directory, app, package, command]):
+                raise KeyError()
+        except KeyError:
+            self._send_response({"status": "error", "hint": "request:format"})
+            return
+        except (ValueError, json.JSONDecodeError):
+            self._send_response({"status": "error", "hint": "request:format"})
+            return
+
+        # Check if the directory exists and is valid.
+        if not os.path.isdir(directory):
+            self._send_response({"status": "error", "hint": "directory:invalid"})
+            return
+
+        # Check if the command path is valid.
+        command_path = os.path.join(directory, command)
+        real_command_path = os.path.realpath(command_path)
+        real_directory_path = os.path.realpath(directory)
+        if not real_command_path.startswith(real_directory_path.rstrip("/") + "/"):
+            self._send_response({"status": "error", "hint": "command:invalid"})
+            return
+
+        # Check if the command path is a file.
+        if not os.path.isfile(real_command_path):
+            self._send_response({"status": "error", "hint": "command:invalid-format"})
+            return
+
+        # Launch the executable. This may raise more errors.
+        self._launch_executable(real_directory_path, real_command_path, package, app)
+
+        # Close the socket
+        self.request.close()
+
+    def _send_response(self, response: dict):
+        serialized_response = json.dumps(response).encode("utf-8")
+        self.request.sendall(serialized_response + b"\n")
+
+    def _launch_executable(self, real_directory_path: str, real_command_path: str, package: str, app: str):
+        """
+        Launches the game. This includes:
+        - Lock test-and-set.
+        - Determining format.
+        - Preparing save directory, if any.
+        - Launching the game.
+        - Waiting for it to be terminated.
+        - Releasing & storing save directory, if any.
+        :param real_directory_path: The directory path.
+        :param real_command_path: The command executable path.
+        :param package: The command package (e.g. inverted domain).
+        :param app: The command app.
+        """
+
+        # 1. Lock test-and-set.
+        assert isinstance(self.server, GameLauncherServer)
+        if self.server.locked:
+            self._send_response({"status": "error", "hint": "command:game-already-running"})
+            return
+        self.server.locked = True
+
+        # 2. Determining format.
+        format = self._get_executable_type(real_command_path)
+
+        # 3. Depending on the format, doing the remaining tasks.
+        load_dragonshark_save(package, app)
+
+        # 4. Launching the game. Passing a callback to it, to handle
+        #    termination in any way.
+        def _release():
+            self.server.locked = False
+            store_dragonshark_save(package, app)
+
+        if format == "web":
+            run_native.run_game(real_directory_path, real_command_path, self._send_response, _release)
+        else:
+            run_web.run_game(real_directory_path, real_command_path, self._send_response, _release)
