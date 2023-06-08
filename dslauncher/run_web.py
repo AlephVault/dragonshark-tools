@@ -1,0 +1,103 @@
+import os
+import json
+import threading
+import subprocess
+from typing import Callable
+from . import hotkeys
+
+
+# These are the arguments for the chromium process. Ideally, they
+# will do the following:
+# - Suppress any warning(s) or notifications.
+# - Allow only 10mb to localhost:8888 and 0mb of storage at all to any other site.
+# - Allow no cache at all, to any site.
+# - Open the required page in kiosk mode.
+CHROMIUM_BROWSER_ARGS = ["--disk-cache-size=0", "--enable-features=FileSystemAPI",
+                         "--disable-site-isolation-trials", "--disable-site-isolation-for-policy",
+                         "--disable-features=IsolateOrigins,site-per-process,OverscrollHistoryNavigation",
+                         "--disable-local-storage", "--disable-session-storage", "--disable-quota",
+                         "--disable-indexeddb", "--disable-app-cache", "--disable-background-networking",
+                         "--disable-sync", "--disable-breakpad", "--disable-client-side-phishing-detection",
+                         "--disable-default-apps", "--disable-extensions", "--no-default-browser-check",
+                         "--no-first-run", "--disable-translate", "--safebrowsing-disable-auto-update",
+                         "--site-per-process", "--site-storage-quota-policy=per_host", "--per-process-gpu",
+                         "--kiosk", "--enable-fullscreen", "--activate-on-launch", "--noerrdialogs",
+                         "--disable-pinch", "--start-maximized", "--disable-infobars", "--disable-notifications",
+                         "--disable-session-crashed-bubble", "--no-first-run", "--enable-offline-auto-reload",
+                         "--autoplay-policy=no-user-gesture-required", "--deny-permission-prompts",
+                         "--disable-search-geolocation-disclosure", "--enable-ipv6",
+                         "--simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT'"]
+
+
+def _start_http_server(directory: str, command: str):
+    """
+    Starts an HTTP server, using port 8888, in a given directory.
+    :returns: The URL.
+    """
+
+    subprocess.run("python -m http.server 8888", cwd=directory)
+    return f"http://localhost:8888/{command}"
+
+
+def _prepare_save_size_preference(save_directory: str):
+    """
+    Prepares the save size preferences (10mb) in the save directory.
+    :param save_directory: The save directory for this game.
+    :returns: The preferences file.
+    """
+
+    prefs_file = os.path.join(save_directory, "preferences.json")
+    os.makedirs(save_directory, mode=0o700, exist_ok=True)
+    with open(prefs_file, "w") as f:
+        json.dump({"SiteStorage": {"localhost:8888": 10485760, "*": 0}}, f)
+    return prefs_file
+
+
+def _run_browser(save_directory: str, prefs_file: str, url: str):
+    """
+    Runs the browser game. This is done in the "pi" context, with the
+    given preferences file, and with a lot of custom browser settings
+    that convert the experience to a non-browser-seeming game hitting
+    the game url.
+    :param save_directory: The save directory.
+    :param prefs_file: The preferences file.
+    :param url: The URL.
+    :return: The game's browser process.
+    """
+
+    sudo = ["sudo", "-u", "pi"]
+    custom = [f"--user-data-dir={save_directory}", f"--user-preferences-file={prefs_file}"]
+    chromium_command = sudo + ["chromium-browser"] + custom + CHROMIUM_BROWSER_ARGS + [url]
+    return subprocess.Popen(chromium_command)
+
+
+def run_game(directory: str, command: str, save_directory: str, on_end: Callable[[], None]):
+    """
+    Executes a web game.
+    :param directory: Where is the game stored.
+    :param command: The command, inside the game.
+    :param save_directory: The save directory for this game.
+    :param on_end: What happens when the game is completely terminated and
+      cleaned up.
+    """
+
+    # PLEASE CONSIDER SOMETHING: THIS DOES NOT REQUIRE ANY SAVE-FILE(S)
+    # MANAGEMENT, AS IT IS NEEDED IN THE NATIVE GAMES.
+
+    # 1. Prepare the URL and mount a server right there.
+    url = _start_http_server(directory, command)
+
+    # 2. Prepare the preferences in the game's save directory.
+    prefs_file = _prepare_save_size_preference(save_directory)
+
+    # 3. Run the game.
+    process = _run_browser(save_directory, prefs_file, url)
+
+    # 4. Wait for the process and, when done, invoke the callback.
+    #    Also install a signal to kill it on hotkey Start + Select (hold both 3 seconds).
+    hotkeys.kill_on_hotkey(process)
+
+    def _func():
+        process.wait()
+        on_end()
+    threading.Thread(target=_func).start()
