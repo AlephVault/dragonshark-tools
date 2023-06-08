@@ -138,10 +138,7 @@ class GameLauncherRequestHandler(socketserver.StreamRequestHandler):
         # 2. Determining format.
         format = self._get_executable_type(real_command_path)
 
-        # 3. Get the save directory.
-        save_directory = get_dragonshark_game_save_path(package, app)
-
-        # 4. Launching the game. Passing a callback to it, to handle
+        # 3. Launching the game. Passing a callback to it, to handle
         #    termination in any way.
         def _release():
             self.server.locked = False
@@ -150,7 +147,7 @@ class GameLauncherRequestHandler(socketserver.StreamRequestHandler):
             if format == "web":
                 run_native.run_game(real_directory_path, real_command_path, self._send_response, _release)
             else:
-                run_web.run_game(real_directory_path, real_command_path, save_directory, _release)
+                run_web.run_game(real_directory_path, real_command_path, package, app, _release)
         except Exception as e:
             self._send_response({"status": "error", "hint": "unknown", "type": type(e).__name__,
                                  "traceback": traceback.format_exc()})

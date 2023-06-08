@@ -4,6 +4,7 @@ import threading
 import subprocess
 from typing import Callable
 from . import hotkeys
+from .saves import get_dragonshark_game_save_path
 
 
 # These are the arguments for the chromium process. Ideally, they
@@ -12,6 +13,8 @@ from . import hotkeys
 # - Allow only 10mb to localhost:8888 and 0mb of storage at all to any other site.
 # - Allow no cache at all, to any site.
 # - Open the required page in kiosk mode.
+
+
 CHROMIUM_BROWSER_ARGS = ["--disk-cache-size=0", "--enable-features=FileSystemAPI",
                          "--disable-site-isolation-trials", "--disable-site-isolation-for-policy",
                          "--disable-features=IsolateOrigins,site-per-process,OverscrollHistoryNavigation",
@@ -71,15 +74,18 @@ def _run_browser(save_directory: str, prefs_file: str, url: str):
     return subprocess.Popen(chromium_command)
 
 
-def run_game(directory: str, command: str, save_directory: str, on_end: Callable[[], None]):
+def run_game(directory: str, command: str, package: str, app: str, on_end: Callable[[], None]):
     """
     Executes a web game.
     :param directory: Where is the game stored.
     :param command: The command, inside the game.
-    :param save_directory: The save directory for this game.
+    :param package: The game's package.
+    :param app: The game's app.
     :param on_end: What happens when the game is completely terminated and
       cleaned up.
     """
+
+    save_directory = get_dragonshark_game_save_path(package, app)
 
     # PLEASE CONSIDER SOMETHING: THIS DOES NOT REQUIRE ANY SAVE-FILE(S)
     # MANAGEMENT, AS IT IS NEEDED IN THE NATIVE GAMES.
