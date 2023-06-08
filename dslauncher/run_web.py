@@ -2,7 +2,7 @@ import os
 import json
 import threading
 import subprocess
-from typing import Callable
+from typing import Callable, Tuple
 from . import hotkeys
 from .saves import get_dragonshark_game_save_path
 
@@ -32,14 +32,14 @@ CHROMIUM_BROWSER_ARGS = ["--disk-cache-size=0", "--enable-features=FileSystemAPI
                          "--simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT'"]
 
 
-def _start_http_server(directory: str, command: str):
+def _start_http_server(directory: str, command: str) -> Tuple[str, subprocess.Popen]:
     """
     Starts an HTTP server, using port 8888, in a given directory.
     :returns: The URL.
     """
 
-    subprocess.run("python -m http.server 8888", cwd=directory)
-    return f"http://localhost:8888/{command}"
+    web_server = subprocess.Popen("python -m http.server 8888", cwd=directory)
+    return f"http://localhost:8888/{command}", web_server
 
 
 def _prepare_save_size_preference(save_directory: str):
@@ -91,7 +91,7 @@ def run_game(directory: str, command: str, package: str, app: str, on_end: Calla
     # MANAGEMENT, AS IT IS NEEDED IN THE NATIVE GAMES.
 
     # 1. Prepare the URL and mount a server right there.
-    url = _start_http_server(directory, command)
+    url, web_server = _start_http_server(directory, command)
 
     # 2. Prepare the preferences in the game's save directory.
     prefs_file = _prepare_save_size_preference(save_directory)
@@ -105,5 +105,6 @@ def run_game(directory: str, command: str, package: str, app: str, on_end: Calla
 
     def _func():
         process.wait()
+        web_server.kill()
         on_end()
     threading.Thread(target=_func).start()
