@@ -4,7 +4,6 @@ import json
 import subprocess
 import socketserver
 import traceback
-
 from .saves import get_dragonshark_game_save_path
 from . import run_web, run_native
 
@@ -97,6 +96,7 @@ class GameLauncherRequestHandler(socketserver.StreamRequestHandler):
         if not real_command_path.startswith(real_directory_path.rstrip("/") + "/"):
             self._send_response({"status": "error", "hint": "command:invalid"})
             return
+        real_relative_command_path = real_command_path[len(real_directory_path) + 1:]
 
         # Check if the command path is a file.
         if not os.path.isfile(real_command_path):
@@ -104,7 +104,7 @@ class GameLauncherRequestHandler(socketserver.StreamRequestHandler):
             return
 
         # Launch the executable. This may raise more errors.
-        self._launch_executable(real_directory_path, real_command_path, package, app)
+        self._launch_executable(real_directory_path, real_relative_command_path, package, app)
 
         # Close the socket
         self.request.close()
@@ -113,7 +113,7 @@ class GameLauncherRequestHandler(socketserver.StreamRequestHandler):
         serialized_response = json.dumps(response).encode("utf-8")
         self.request.sendall(serialized_response + b"\n")
 
-    def _launch_executable(self, real_directory_path: str, real_command_path: str, package: str, app: str):
+    def _launch_executable(self, real_directory_path: str, real_relative_command_path: str, package: str, app: str):
         """
         Launches the game. This includes:
         - Lock test-and-set.
@@ -123,7 +123,7 @@ class GameLauncherRequestHandler(socketserver.StreamRequestHandler):
         - Waiting for it to be terminated.
         - Releasing & storing save directory, if any.
         :param real_directory_path: The directory path.
-        :param real_command_path: The command executable path.
+        :param real_relative_command_path: The command executable path.
         :param package: The command package (e.g. inverted domain).
         :param app: The command app.
         """
@@ -136,7 +136,7 @@ class GameLauncherRequestHandler(socketserver.StreamRequestHandler):
         self.server.locked = True
 
         # 2. Determining format.
-        format = self._get_executable_type(real_command_path)
+        format = self._get_executable_type(real_relative_command_path)
 
         # 3. Launching the game. Passing a callback to it, to handle
         #    termination in any way.
@@ -145,9 +145,9 @@ class GameLauncherRequestHandler(socketserver.StreamRequestHandler):
 
         try:
             if format == "web":
-                run_native.run_game(real_directory_path, real_command_path, self._send_response, _release)
+                run_native.run_game(real_directory_path, real_relative_command_path, package, app, _release)
             else:
-                run_web.run_game(real_directory_path, real_command_path, package, app, _release)
+                run_web.run_game(real_directory_path, real_relative_command_path, package, app, _release)
         except Exception as e:
             self._send_response({"status": "error", "hint": "unknown", "type": type(e).__name__,
                                  "traceback": traceback.format_exc()})
