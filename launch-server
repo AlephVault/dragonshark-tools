@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import logging
-from dslauncher.main_server import launch_main_server
+from launcher.main_server import launch_main_server
 
 
 """
