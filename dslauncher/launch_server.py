@@ -20,6 +20,12 @@ class GameLauncherServer(socketserver.ThreadingUnixStreamServer):
         super().__init__(server_address, request_handler_class)
         self.locked = False
 
+    def server_activate(self) -> None:
+        super().server_activate()
+        os.system(f"chgrp hawalnch {MAIN_BINDING}")
+        os.system(f"chmod g+rw {MAIN_BINDING}")
+        os.system(f"chmod o-rwx {MAIN_BINDING}")
+
 
 class GameLauncherRequestHandler(socketserver.StreamRequestHandler):
     """
@@ -150,3 +156,13 @@ class GameLauncherRequestHandler(socketserver.StreamRequestHandler):
         except Exception as e:
             self._send_response({"status": "error", "hint": "unknown", "type": type(e).__name__,
                                  "traceback": traceback.format_exc()})
+
+
+def launch_server():
+    """
+    Launches the server using the main binding.
+    """
+
+    os.system(f"rm {MAIN_BINDING}")
+    with GameLauncherServer(MAIN_BINDING, GameLauncherRequestHandler) as f:
+        f.serve_forever()
