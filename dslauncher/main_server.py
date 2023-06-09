@@ -158,7 +158,7 @@ class GameLauncherRequestHandler(socketserver.StreamRequestHandler):
                                  "traceback": traceback.format_exc()})
 
 
-def launch_server():
+def launch_main_server():
     """
     Launches the server using the main binding.
     """
