@@ -21,6 +21,7 @@ def clear_processes():
     """
 
     os.system(f"crontab -u {GAMER_NAME} -r")
+    os.system(f"atrm -u gamer")
     os.system(f"pkill -9 -u {GAMER_NAME}")
     lock_delete()
 
