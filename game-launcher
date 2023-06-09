@@ -1,0 +1,70 @@
+#!/usr/bin/python3
+import json
+import os
+import sys
+import socket
+import logging
+import argparse
+from bs4 import BeautifulSoup
+
+
+"""
+Ensure this file has permissions 0o550 (only user, only read-execute) and group "hawalnch".
+"""
+
+
+logging.basicConfig()
+LOGGER = logging.getLogger("game-launcher")
+LOGGER.setLevel(logging.INFO)
+MAIN_BINDING = "/run/Hawa/game-launcher.sock"
+
+
+def err(s, c=1):
+    print(s, file=sys.stderr)
+    sys.exit(c)
+
+
+def _send_command(command):
+    client = None
+    try:
+        client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        client.connect(MAIN_BINDING)
+        client.send(f"{json.dumps(command)}\n".encode("utf-8"))
+        client.settimeout(3)
+        received = client.recv(1024)
+        if len(received) == 0:
+            return
+        decoded = received.decode("utf-8").strip()
+        print(decoded or '{"status": "error", "hint": "unknown"}')
+    finally:
+        try:
+            client.close()
+        except:
+            pass
+
+
+def start_process(xml_file: str):
+    try:
+        with open(xml_file) as f:
+            soup = BeautifulSoup(f, "xml")
+        # <hawa-game arch="{...}">{...}</hawa-game> contains everything.
+        dragonshark = soup.find("hawa-game")
+        # >> <game-id package="{...}" app="{...}" />.
+        game_id = dragonshark.find("game-id")
+        package = game_id.package
+        app = game_id.app
+        # >> <command text="{...}">.
+        directory = os.path.dirname(xml_file)
+        command = dragonshark.find("command").text
+    except Exception:
+        err("Could not read or understand the manifest file properly", 2)
+        return
+
+    _send_command({"directory": directory, "command": command, "package": package, "app": app})
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Launches a Hawa-enabled game')
+    parser.add_argument('manifest', help='path to the XML manifest file for the game')
+    args = parser.parse_args()
+    start_process(args.manifest)
