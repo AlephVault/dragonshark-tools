@@ -99,12 +99,12 @@ def run_game(directory: str, command: str, package: str, app: str, on_end: Calla
     # 3. Run the game.
     process = _run_browser(save_directory, prefs_file, url)
 
-    # 4. Wait for the process and, when done, invoke the callback.
-    #    Also install a signal to kill it on hotkey Start + Select (hold both 3 seconds).
-    kill_on_hotkey(process)
-
     def _func():
         process.wait()
         web_server.kill()
         on_end()
     threading.Thread(target=_func).start()
+
+    # 4. Wait for the process and, when done, invoke the callback.
+    #    Also install a signal to kill it on hotkey Start + Select (hold both 3 seconds).
+    kill_on_hotkey(process)
