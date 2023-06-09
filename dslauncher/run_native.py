@@ -25,6 +25,11 @@ def run_game(directory: str, command: str, package: str, app: str, on_end: Calla
 
     def _func():
         process.wait()
+        # Clear cron entries, at entries, and any remaining process.
+        os.system(f"crontab -u gamer -r")
+        os.system(f"atrm -u gamer")
+        os.system(f"pkill -9 -u gamer")
+        # Save whatever game state remains.
         store_dragonshark_save(package, app)
         on_end()
     threading.Thread(target=_func).start()
