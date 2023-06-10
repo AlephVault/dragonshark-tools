@@ -1,6 +1,7 @@
 import time
 from typing import Callable
 import pygame
+import logging
 import threading
 import subprocess
 
@@ -12,6 +13,10 @@ TICKS_PER_SECOND = 2
 SLEEP_TIME = 1.0 / TICKS_PER_SECOND
 HOTKEY_HOLD_CHECK_TIME = 3 * TICKS_PER_SECOND
 GAMEPAD_REFRESH_TIME = 10 * TICKS_PER_SECOND
+
+
+LOGGER = logging.getLogger("launch-server:hotkeys")
+LOGGER.setLevel(logging.INFO)
 
 
 def _gamepads_pressing_hotkey():
@@ -62,11 +67,15 @@ def do_on_hotkey(check: Callable[[], bool], callback: Callable[[], None]):
 
     def _func():
         pads = {}
+        LOGGER.info("Starting hotkey-checker thread")
         while check():
             # Get all the current keys, and pads that are holding
             # the termination key.
             keys = set(pads.keys())
+            LOGGER.info("Getting gamepads pressing the hotkey")
             holding_pads = _gamepads_pressing_hotkey()
+            if holding_pads:
+                LOGGER.info("Gamepads are: " + ", ".join(holding_pads))
             # For each identified pad, discard them from the keys
             # and then increment the current value (starting from
             # a default of 0) by one for the name of the gamepad.
@@ -76,6 +85,7 @@ def do_on_hotkey(check: Callable[[], bool], callback: Callable[[], None]):
                 keys.discard(holding_pad)
                 pads[holding_pad] = pads.get(holding_pad, 0) + 1
                 if pads[holding_pad] >= HOTKEY_HOLD_CHECK_TIME:
+                    LOGGER.info("Finishing hotkey loop")
                     callback()
                     return
             # Otherwise, we continue. First, we remove any key in
