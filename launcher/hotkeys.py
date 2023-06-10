@@ -1,4 +1,5 @@
 import time
+from typing import Callable
 import pygame
 import threading
 import subprocess
@@ -52,17 +53,16 @@ def _is_hotkey_pressed(gamepad, hotkey):
     return all([gamepad.get_button(key) for key in hotkey])
 
 
-def kill_on_hotkey(process: subprocess.Popen):
+def do_on_hotkey(check: Callable[[], bool], callback: Callable[[], None]):
     """
-    Starts a watch over the process. If the process is not killed and the
-    main joypad is pressing Start + Select for 3 seconds, then the process
-    will be killed (non-gracefully!).
-    :param process: The process to watch.
+    Executes something on hotkey or when a condition stops being met.
+    :param check: The condition to check.
+    :param callback: The callback on the end.
     """
 
     def _func():
         pads = {}
-        while process.poll() is None:
+        while check():
             # Get all the current keys, and pads that are holding
             # the termination key.
             keys = set(pads.keys())
@@ -76,7 +76,7 @@ def kill_on_hotkey(process: subprocess.Popen):
                 keys.discard(holding_pad)
                 pads[holding_pad] = pads.get(holding_pad, 0) + 1
                 if pads[holding_pad] >= HOTKEY_HOLD_CHECK_TIME:
-                    process.kill()
+                    callback()
                     return
             # Otherwise, we continue. First, we remove any key in
             # that dictionary that did not hold the buttons this
@@ -85,3 +85,15 @@ def kill_on_hotkey(process: subprocess.Popen):
                 pads.pop(key)
             time.sleep(SLEEP_TIME)
     threading.Thread(target=_func).start()
+
+
+def kill_on_hotkey(process: subprocess.Popen):
+    """
+    Starts a watch over the process. If the process is not killed and the
+    main joypad is pressing Start + Select for 3 seconds, then the process
+    will be killed (non-gracefully!).
+    :param process: The process to watch.
+    """
+
+    do_on_hotkey(lambda: process.poll() is None,
+                 lambda: process.kill())
