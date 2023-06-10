@@ -51,8 +51,8 @@ def start_process(xml_file: str):
         hawa_game = soup.find("hawa-game")
         # >> <game-id package="{...}" app="{...}" />.
         game_id = hawa_game.find("game-id")
-        package = game_id.package or ''
-        app = game_id.app or ''
+        package = game_id.attrs.get('package', '')
+        app = game_id.attrs.get('app', '')
         # >> <command text="{...}">.
         directory = os.path.dirname(xml_file)
         command = hawa_game.find("command").text or ''
