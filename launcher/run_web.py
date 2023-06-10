@@ -38,7 +38,7 @@ def _start_http_server(directory: str, command: str) -> Tuple[str, subprocess.Po
     :returns: The URL.
     """
 
-    web_server = subprocess.Popen("python -m http.server 8888", cwd=directory)
+    web_server = subprocess.Popen("python3 -m http.server 8888", shell=True, cwd=directory)
     return f"http://localhost:8888/{command}", web_server
 
 
