@@ -1,10 +1,15 @@
 import os
 import json
+import logging
 import threading
 import subprocess
 from typing import Callable, Tuple
 from .hotkeys import kill_on_hotkey
 from .saves import get_dragonshark_game_save_path
+
+
+LOGGER = logging.getLogger("launch-server:run-web")
+LOGGER.setLevel(logging.INFO)
 
 
 # These are the arguments for the chromium process. Ideally, they
@@ -94,16 +99,20 @@ def run_game(directory: str, command: str, package: str, app: str, on_end: Calla
     # MANAGEMENT, AS IT IS NEEDED IN THE NATIVE GAMES.
 
     # 1. Prepare the URL and mount a server right there.
+    LOGGER.info("Preparing local http server")
     url, web_server = _start_http_server(directory, command)
 
     # 2. Prepare the preferences in the game's save directory.
+    LOGGER.info("Preparing preferences into the save directory")
     prefs_file = _prepare_save_size_preference(save_directory)
 
     # 3. Run the game.
+    LOGGER.info("Running the game")
     process = _run_browser(save_directory, prefs_file, url)
 
     def _func():
         process.wait()
+        LOGGER.info("Killing local http server")
         web_server.kill()
         on_end()
     threading.Thread(target=_func).start()
