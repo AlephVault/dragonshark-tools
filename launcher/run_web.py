@@ -51,6 +51,7 @@ def _prepare_save_size_preference(save_directory: str):
 
     prefs_file = os.path.join(save_directory, "preferences.json")
     os.makedirs(save_directory, mode=0o700, exist_ok=True)
+    os.system("chown pi:pi " + save_directory)
     with open(prefs_file, "w") as f:
         json.dump({"SiteStorage": {"localhost:8888": 10485760, "*": 0}}, f)
     return prefs_file
@@ -68,10 +69,10 @@ def _run_browser(save_directory: str, prefs_file: str, url: str):
     :return: The game's browser process.
     """
 
-    sudo = ["sudo", "-u", "pi"]
+    sudo = "DISPLAY=:0 sudo -u pi"
     custom = [f"--user-data-dir={save_directory}", f"--user-preferences-file={prefs_file}"]
-    chromium_command = sudo + ["chromium-browser"] + custom + CHROMIUM_BROWSER_ARGS + [url]
-    return subprocess.Popen(chromium_command)
+    chromium_command = sudo + ' ' + ' '.join(["chromium-browser"] + custom + CHROMIUM_BROWSER_ARGS + [url])
+    return subprocess.Popen(chromium_command, shell=True)
 
 
 def run_game(directory: str, command: str, package: str, app: str, on_end: Callable[[], None]):
