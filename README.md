@@ -39,7 +39,7 @@ Finally, ensure `virtualpad-admin` is owned by the group `hawamgmt`.
     sudo groupadd hawalnch
     sudo ln -s /opt/Hawa/launcher/launch-game /usr/local/bin/launch-game
     sudo chmod ug+rx /opt/Hawa/launcher/launch-game
-    sudo chgrp hawamgmt /opt/Hawa/launcher/launch-game
+    sudo chgrp hawalnch /opt/Hawa/launcher/launch-game
 
 All the users that will be able to access the launch-game app must belong to that group:
 
