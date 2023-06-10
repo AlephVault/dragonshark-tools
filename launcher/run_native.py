@@ -3,7 +3,7 @@ import logging
 import subprocess
 import threading
 from typing import Callable
-from .hotkeys import kill_on_hotkey
+from .hotkeys import do_on_hotkey
 from .saves import load_dragonshark_save, store_dragonshark_save
 
 
@@ -45,4 +45,10 @@ def run_game(directory: str, command: str, package: str, app: str, on_end: Calla
 
     # 3. Wait until the game process ends:
     # Also install a signal to kill it on hotkey Start + Select (hold both 3 seconds).
-    kill_on_hotkey(process)
+    def check():
+        return process.poll() is None
+
+    def terminate():
+        process.kill()
+
+    do_on_hotkey(check, terminate)

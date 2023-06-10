@@ -4,7 +4,7 @@ import logging
 import threading
 import subprocess
 from typing import Callable, Tuple
-from .hotkeys import kill_on_hotkey
+from .hotkeys import do_on_hotkey
 from .saves import get_dragonshark_game_save_path
 
 
@@ -119,4 +119,10 @@ def run_game(directory: str, command: str, package: str, app: str, on_end: Calla
 
     # 4. Wait for the process and, when done, invoke the callback.
     #    Also install a signal to kill it on hotkey Start + Select (hold both 3 seconds).
-    kill_on_hotkey(process)
+    def check():
+        return process.poll() is None
+
+    def terminate():
+        os.system("pkill chromium")
+
+    do_on_hotkey(check, terminate)
