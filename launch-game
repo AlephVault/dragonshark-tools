@@ -48,14 +48,14 @@ def start_process(xml_file: str):
         with open(xml_file) as f:
             soup = BeautifulSoup(f, "xml")
         # <hawa-game arch="{...}">{...}</hawa-game> contains everything.
-        dragonshark = soup.find("hawa-game")
+        hawa_game = soup.find("hawa-game")
         # >> <game-id package="{...}" app="{...}" />.
-        game_id = dragonshark.find("game-id")
-        package = game_id.package
-        app = game_id.app
+        game_id = hawa_game.find("game-id")
+        package = game_id.package or ''
+        app = game_id.app or ''
         # >> <command text="{...}">.
         directory = os.path.dirname(xml_file)
-        command = dragonshark.find("command").text
+        command = hawa_game.find("command").text or ''
     except Exception:
         err("Could not read or understand the manifest file properly", 2)
         return
