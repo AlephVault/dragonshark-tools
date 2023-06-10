@@ -29,7 +29,8 @@ def _send_command(command):
     try:
         client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         client.connect(MAIN_BINDING)
-        client.send(f"{json.dumps(command)}\n".encode("utf-8"))
+        data = f"{json.dumps(command)}\n".encode("utf-8")
+        client.send(data)
         client.settimeout(3)
         received = client.recv(1024)
         if len(received) == 0:
