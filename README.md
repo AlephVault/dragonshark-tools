@@ -25,7 +25,9 @@ Or perhaps running it as a service owned by root (e.g. create the /etc/systemd/s
     Group=root
     WorkingDirectory=/opt/Hawa/launcher
     ExecStart=/opt/Hawa/launcher/launch-server
+    ExecStop=pkill launch-server
     Restart=always
+    TimeoutStopSec=1s
 
     [Install]
     WantedBy=multi-user.target
