@@ -1,6 +1,7 @@
 import re
 import os
 import json
+import pygame
 import subprocess
 import socketserver
 import traceback
@@ -22,6 +23,7 @@ class GameLauncherServer(socketserver.ThreadingUnixStreamServer):
 
     def server_activate(self) -> None:
         super().server_activate()
+        pygame.init()
         os.system(f"chgrp hawalnch {MAIN_BINDING}")
         os.system(f"chmod g+rw {MAIN_BINDING}")
         os.system(f"chmod o-rwx {MAIN_BINDING}")
@@ -149,7 +151,7 @@ class GameLauncherRequestHandler(socketserver.StreamRequestHandler):
             self.server.locked = False
 
         try:
-            if format == "web":
+            if format != "web":
                 run_native.run_game(real_directory_path, real_relative_command_path, package, app, _release)
             else:
                 run_web.run_game(real_directory_path, real_relative_command_path, package, app, _release)
