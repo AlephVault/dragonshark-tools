@@ -3,6 +3,7 @@ import json
 import logging
 import threading
 import subprocess
+from http.server import SimpleHTTPRequestHandler, HTTPServer
 from typing import Callable, Tuple
 from .hotkeys import do_on_hotkey
 from .saves import get_dragonshark_game_save_path
@@ -37,16 +38,35 @@ CHROMIUM_BROWSER_ARGS = ["--disk-cache-size=0", "--enable-features=FileSystemAPI
                          "--simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT'"]
 
 
-def _start_http_server(directory: str, command: str) -> Tuple[str, subprocess.Popen]:
+class GzipHTTPRequestHandler(SimpleHTTPRequestHandler):
     """
-    Starts an HTTP server, using port 8888, in a given directory.
-    :returns: The URL.
+    A server that supports GZIP.
     """
 
-    subprocess.Popen('sudo netstat -anp | grep 8888 | awk ¨{print $7}" | cut -d"/" -f1 | xargs -I xxx kill -9 xxx',
-                     shell=True).wait()
-    web_server = subprocess.Popen("python3 -m http.server 8888", shell=True, cwd=directory)
-    return f"http://localhost:8888/{command}", web_server
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        super().end_headers()
+
+    def send_head(self):
+        path = self.translate_path(self.path)
+
+        # Check if it is a gzipped file
+        if os.path.exists(path) and not os.path.isdir(path) and path.endswith('.gz'):
+            self.send_header('Content-Encoding', 'gzip')
+
+        return super().send_head()
+
+
+def _start_http_server(directory: str, command: str) -> Tuple[str, HTTPServer]:
+    """
+    Runs the server in a separate thread.
+    """
+
+    httpd = HTTPServer(("0.0.0.0", 8888), lambda *args, **kwargs: GzipHTTPRequestHandler(
+        *args, directory=directory, **kwargs
+    ))
+    threading.Thread(target=httpd.serve_forever).start()
+    return f"http://localhost:8888/{command}", httpd
 
 
 def _prepare_save_size_preference(save_directory: str):
@@ -113,7 +133,7 @@ def run_game(directory: str, command: str, package: str, app: str, on_end: Calla
     def _func():
         process.wait()
         LOGGER.info("Killing local http server")
-        web_server.kill()
+        web_server.shutdown()
         on_end()
     threading.Thread(target=_func).start()
 

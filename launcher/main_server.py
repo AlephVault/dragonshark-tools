@@ -2,6 +2,7 @@ import re
 import os
 import json
 import pygame
+import logging
 import subprocess
 import socketserver
 import traceback
@@ -9,6 +10,8 @@ from . import run_web, run_native
 
 
 MAIN_BINDING = "/run/Hawa/game-launcher.sock"
+LOGGER = logging.getLogger("launch-server:main")
+LOGGER.setLevel(logging.INFO)
 
 
 class GameLauncherServer(socketserver.ThreadingUnixStreamServer):
@@ -59,7 +62,7 @@ class GameLauncherRequestHandler(socketserver.StreamRequestHandler):
         obj = json.loads(payload.strip().decode("utf-8"))
         return obj["package"], obj["app"], obj["directory"], obj["command"]
 
-    def _get_executable_type(self, command_path: str):
+    def _get_executable_type(self, real_directory_path: str, command_path: str):
         """
         Tells whether the executable is an HTML page (returns "web") or another type.
         This "another type" might be an ELF 32-bit or ELF 64-bit, or a shell script,
@@ -67,7 +70,8 @@ class GameLauncherRequestHandler(socketserver.StreamRequestHandler):
         :returns: The type: "web" or "exe".
         """
 
-        output = subprocess.check_output(["file", command_path]).decode('utf-8')
+        output = subprocess.check_output(["file", command_path], cwd=real_directory_path).decode('utf-8')
+        LOGGER.info(f"The command ({command_path}) file type is: {output}")
         if re.search(r"HTML document", output):
             return "web"
         else:
@@ -143,7 +147,7 @@ class GameLauncherRequestHandler(socketserver.StreamRequestHandler):
         self.server.locked = True
 
         # 2. Determining format.
-        format = self._get_executable_type(real_relative_command_path)
+        format = self._get_executable_type(real_directory_path, real_relative_command_path)
 
         # 3. Launching the game. Passing a callback to it, to handle
         #    termination in any way.
