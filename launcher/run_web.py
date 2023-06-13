@@ -3,10 +3,11 @@ import json
 import logging
 import threading
 import subprocess
-from http.server import SimpleHTTPRequestHandler, HTTPServer
+from http.server import HTTPServer
 from typing import Callable, Tuple
 from .hotkeys import do_on_hotkey
 from .saves import get_dragonshark_game_save_path
+from .static_server import GzipHTTPRequestHandler
 
 
 LOGGER = logging.getLogger("launch-server:run-web")
@@ -36,25 +37,6 @@ CHROMIUM_BROWSER_ARGS = ["--disk-cache-size=0", "--enable-features=FileSystemAPI
                          "--autoplay-policy=no-user-gesture-required", "--deny-permission-prompts",
                          "--disable-search-geolocation-disclosure", "--enable-ipv6",
                          "--simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT'"]
-
-
-class GzipHTTPRequestHandler(SimpleHTTPRequestHandler):
-    """
-    A server that supports GZIP.
-    """
-
-    def end_headers(self):
-        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
-        super().end_headers()
-
-    def send_head(self):
-        path = self.translate_path(self.path)
-
-        # Check if it is a gzipped file
-        if os.path.exists(path) and not os.path.isdir(path) and path.endswith('.gz'):
-            self.send_header('Content-Encoding', 'gzip')
-
-        return super().send_head()
 
 
 def _start_http_server(directory: str, command: str) -> Tuple[str, HTTPServer]:
