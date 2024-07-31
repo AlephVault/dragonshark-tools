@@ -64,7 +64,7 @@ def store_dragonshark_save(package_base: str, app: str):
         # If these operations (actually: the second one) cannot be performed,
         # then this stops here: there's nothing to save.
         f"mkdir -p {SAVES_DISK}/~tmp",
-        f"cp {source}/* {SAVES_DISK}/~tmp",
+        f"cp -r {source}/* {SAVES_DISK}/~tmp",
         # Then, remove any previous target directory and move SAVES_DISK/~tmp
         # to this target directory.
         f"mkdir -p {target}",
